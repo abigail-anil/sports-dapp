@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Geoapify Coaching Center Search</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">🏅 Coaching Centers (<%= query || 'Search' %>)</h2>
+
+    <form action="/geo-search" method="GET" class="mb-4">
+      <div class="row">
+        <div class="col-md-6 mb-2">
+          <input type="text" name="sport" class="form-control" placeholder="Sport (e.g., Tennis)" required>
+        </div>
+        <div class="col-md-6 mb-2">
+          <input type="text" name="city" class="form-control" placeholder="City (e.g., Dublin)" required>
+        </div>
+      </div>
+      <button class="btn btn-info">Search</button>
+    </form>
+
+    <% if (centers.length > 0) { %>
+      <div class="row">
+        <% centers.forEach(center => { %>
+          <div class="col-md-6 mb-4">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title"><%= center.name %></h5>
+                <p class="card-text"><strong>Address:</strong> <%= center.address %></p>
+                <p class="card-text"><strong>Category:</strong> <%= center.category %></p>
+                <p class="card-text"><strong>Open Hours:</strong> <%= center.openHours %></p>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="text-muted">No centers found for the given sport and city.</p>
+    <% } %>
+  </div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+[
+    {
+      "id": "1",
+      "name": "Dublin Tennis Academy",
+      "address": "Blackrock, Dublin",
+      "rating": "4.5",
+      "openNow": "Open Now",
+      "bookingFee": "0.001",
+      "totalFee": "0.005",
+      "services": ["One-on-one coaching", "Fitness sessions", "Weekend camps"],
+      "reviews": ["Great coaches!", "Affordable and well organized"],
+      "coach": {
+      "name": "James Doyle",
+      "expertise": "Tennis Coaching"
+  }
+    },
+    {
+      "id": "2",
+      "name": "Clontarf Football Club",
+      "address": "Clontarf, Dublin",
+      "rating": "4.2",
+      "openNow": "Closed or Unknown",
+      "bookingFee": "0.0015",
+      "totalFee": "0.006",
+      "services": ["Team practice", "Advanced training", "Kids program"],
+      "reviews": ["Good for kids", "Facilities are great"],
+      "coach": {
+      "name": "James John",
+      "expertise": "Football Coaching"
+  }
+    },
+    {
+      "id": "3",
+      "name": "Dublin Basketball Academy",
+      "address": "City Center, Dublin",
+      "rating": "4.6",
+      "openNow": "Open Now",
+      "bookingFee": "0.002",
+      "totalFee": "0.007",
+      "services": ["Basketball", "Agility Training"],
+      "reviews": ["Top-notch facilities", "Experienced coaches"],
+      "coach": {
+      "name": "James Smith",
+      "expertise": "Basketball Coaching"
+  }
+    }
+    
+  ]
+  
