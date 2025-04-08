@@ -7,6 +7,7 @@
       "openNow": "Open Now",
       "bookingFee": "0.001",
       "totalFee": "0.005",
+      "acceptsToken": true,
       "services": ["One-on-one coaching", "Fitness sessions", "Weekend camps"],
       "reviews": ["Great coaches!", "Affordable and well organized"],
       "coach": {
@@ -22,6 +23,7 @@
       "openNow": "Closed or Unknown",
       "bookingFee": "0.0015",
       "totalFee": "0.006",
+      "acceptsToken": true,
       "services": ["Team practice", "Advanced training", "Kids program"],
       "reviews": ["Good for kids", "Facilities are great"],
       "coach": {
@@ -37,6 +39,7 @@
       "openNow": "Open Now",
       "bookingFee": "0.002",
       "totalFee": "0.007",
+      "acceptsToken": true,
       "services": ["Basketball", "Agility Training"],
       "reviews": ["Top-notch facilities", "Experienced coaches"],
       "coach": {

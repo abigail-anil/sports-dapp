@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,9 +17,18 @@
     <p id="walletAddress" class="mt-2 text-success"></p>
   </div>
 
+  <!-- Token Balance & Transfer -->
+<div class="text-center mb-4">
+	<p id="tokenBalance" class="text-primary"></p>
+	<button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#tokenTransferModal">💸 Send SPT Tokens</button>
+  </div>
+  
+
   <div class="text-center my-3">
     <button class="btn btn-outline-secondary" onclick="showMyBookings()">📋 My Bookings</button>
   </div>
+
+  <p id="tokenBalance" class="mt-2 text-primary"></p>
 
   <!-- Search Form -->
   <div class="card p-4 mb-4">
@@ -70,19 +80,42 @@
 
                 <!-- Booking Form -->
                 <hr>
-                <h6>💳 Book a Session using ETH</h6>
-                <form onsubmit="return bookSession(event, this)"
-                      data-center-name="<%= center.name %>"
-                      data-sport="<%= sportOnly %>"
-                      data-center-id="<%= center.id %>"
-                      data-booking-fee="<%= center.bookingFee %>">
-                  <input type="number" class="form-control mb-2" step="0.001"
-                         id="fee<%= center.id %>" value="<%= center.bookingFee %>"
-                         min="<%= center.bookingFee %>" required>
-                  <small class="text-muted">Minimum: <%= center.bookingFee %> ETH</small>
-                  <button class="btn btn-success mt-2">Pay & Book</button>
-                  <p id="bookingMsg<%= center.id %>" class="text-info mt-2"></p>
-                </form>
+<div class="row">
+  <!-- ETH Booking -->
+  <div class="col-md-6">
+    <h6>💳 Book with ETH</h6>
+    <form onsubmit="return bookSession(event, this)"
+          data-center-name="<%= center.name %>"
+          data-sport="<%= sportOnly %>"
+          data-center-id="<%= center.id %>"
+          data-booking-fee="<%= center.bookingFee %>">
+      <input type="number" class="form-control mb-2" step="0.001"
+             id="fee<%= center.id %>" value="<%= center.bookingFee %>"
+             min="<%= center.bookingFee %>" required>
+      <small class="text-muted">Min: <%= center.bookingFee %> ETH</small>
+      <button class="btn btn-success mt-2 w-100">Pay & Book</button>
+      <p id="bookingMsg<%= center.id %>" class="text-info mt-2"></p>
+    </form>
+  </div>
+
+  <!-- Token Booking -->
+  <div class="col-md-6">
+    <h6>🪙 Book with SPT Token</h6>
+    <form onsubmit="return bookWithToken(event, this)"
+          data-center-name="<%= center.name %>"
+          data-sport="<%= sportOnly %>"
+          data-center-id="<%= center.id %>"
+          data-booking-fee="<%= center.bookingFee %>">
+      <input type="number" class="form-control mb-2" step="0.01"
+             id="tokenFee<%= center.id %>" value="<%= center.bookingFee %>"
+             min="<%= center.bookingFee %>" required>
+      <small class="text-muted">Min: <%= center.bookingFee %> SPT</small>
+      <button class="btn btn-primary mt-2 w-100">Pay with Token</button>
+      <p id="tokenBookingMsg<%= center.id %>" class="text-info mt-2"></p>
+    </form>
+  </div>
+</div>
+
 
                 <!-- Review Section -->
                 <hr>
@@ -105,22 +138,20 @@
   <% } %>
 </div>
 
-<!-- My Bookings Card -->
+<!-- My Bookings Modal -->
 <div class="modal fade" id="bookingsModal" tabindex="-1" aria-labelledby="bookingsModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
-	  <div class="modal-content">
-		<div class="modal-header">
-		  <h5 class="modal-title" id="bookingsModalLabel">📋 My Bookings</h5>
-		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-		</div>
-		<div class="modal-body">
-		  <ul id="myBookingsList" class="list-group list-group-flush"></ul>
-		</div>
-	  </div>
-	</div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bookingsModalLabel">📋 My Bookings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <ul id="myBookingsList" class="list-group list-group-flush"></ul>
+      </div>
+    </div>
   </div>
-  
-  
+</div>
 
 <!-- Profile Modal -->
 <div class="modal fade" id="profileModal" tabindex="-1">
@@ -142,593 +173,28 @@
   </div>
 </div>
 
-<!-- Bootstrap + DApp Script -->
+<!-- Token Transfer Modal -->
+<div class="modal fade" id="tokenTransferModal" tabindex="-1">
+	<div class="modal-dialog">
+	  <form class="modal-content" onsubmit="sendTokenHandler(event)">
+		<div class="modal-header">
+		  <h5 class="modal-title">Send SPT Tokens</h5>
+		  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+		</div>
+		<div class="modal-body">
+		  <input type="text" id="recipientAddress" class="form-control mb-2" placeholder="Recipient Wallet Address" required>
+		  <input type="number" id="tokenAmount" class="form-control mb-2" placeholder="Amount (SPT)" step="0.01" required>
+		</div>
+		<div class="modal-footer">
+		  <button type="submit" class="btn btn-success">Send</button>
+		</div>
+	  </form>
+	</div>
+  </div>
+  
+
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  const bookingContractAddress = "0xe8c6239d960e72301a876eb4582cba66c25e37c0";
-  const reviewContractAddress = "0x8b0979591caf02f4efbce863179f8a8bbc3a70b2";
-  const bookingContractABI = [
-  	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "centerName",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "sport",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "BookingCancelled",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "sport",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "centerName",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"name": "NewBooking",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_sport",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_centerName",
-				"type": "string"
-			}
-		],
-		"name": "bookSession",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "index",
-				"type": "uint256"
-			}
-		],
-		"name": "cancelBooking",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "withdrawAll",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			}
-		],
-		"name": "getBookingCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_user",
-				"type": "address"
-			}
-		],
-		"name": "getBookingsByUser",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "string",
-						"name": "sport",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "centerName",
-						"type": "string"
-					},
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "timestamp",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct BookingContract.Booking[]",
-				"name": "",
-				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getContractBalance",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "userBookings",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "sport",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "centerName",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
-];
-  const reviewContractABI = [{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "reviewer",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "centerName",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint8",
-				"name": "rating",
-				"type": "uint8"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"name": "NewReview",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_centerName",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "_message",
-				"type": "string"
-			},
-			{
-				"internalType": "uint8",
-				"name": "_rating",
-				"type": "uint8"
-			}
-		],
-		"name": "addReview",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "centerReviews",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "reviewer",
-				"type": "address"
-			},
-			{
-				"internalType": "string",
-				"name": "message",
-				"type": "string"
-			},
-			{
-				"internalType": "uint8",
-				"name": "rating",
-				"type": "uint8"
-			},
-			{
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_centerName",
-				"type": "string"
-			}
-		],
-		"name": "getReviews",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "address",
-						"name": "reviewer",
-						"type": "address"
-					},
-					{
-						"internalType": "string",
-						"name": "message",
-						"type": "string"
-					},
-					{
-						"internalType": "uint8",
-						"name": "rating",
-						"type": "uint8"
-					},
-					{
-						"internalType": "uint256",
-						"name": "timestamp",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct ReviewContract.Review[]",
-				"name": "",
-				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}]; // trimmed for brevity
-
-  let signer, bookingContract, reviewContract;
-
-  async function connectWallet() {
-    if (window.ethereum) {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = provider.getSigner();
-      const address = await signer.getAddress();
-      document.getElementById("walletAddress").innerText = "Connected: " + address;
-      bookingContract = new ethers.Contract(bookingContractAddress, bookingContractABI, signer);
-      reviewContract = new ethers.Contract(reviewContractAddress, reviewContractABI, signer);
-    } else {
-      alert("Install MetaMask!");
-    }
-  }
-
-  function saveUserProfile(event) {
-    event.preventDefault();
-    const profile = {
-      name: document.getElementById("profileName").value,
-      email: document.getElementById("profileEmail").value,
-      sport: document.getElementById("profileSport").value
-    };
-    localStorage.setItem("userProfile", JSON.stringify(profile));
-    bootstrap.Modal.getInstance(document.getElementById("profileModal")).hide();
-    alert("✅ Profile saved!");
-  }
-
-  async function bookSession(event, form) {
-    event.preventDefault();
-    if (!signer || !bookingContract) return alert("Connect wallet first.");
-
-    const centerName = form.dataset.centerName;
-    const sport = form.dataset.sport;
-    const id = form.dataset.centerId;
-    const minFee = parseFloat(form.dataset.bookingFee || "0.001");
-    const ethValue = parseFloat(document.getElementById(`fee${id}`).value);
-    const msg = document.getElementById(`bookingMsg${id}`);
-
-    if (isNaN(ethValue) || ethValue < minFee) {
-      msg.innerText = `❌ Minimum payment is ${minFee} ETH.`;
-      return;
-    }
-
-    try {
-      const tx = await bookingContract.bookSession(sport, centerName, {
-        value: ethers.utils.parseEther(ethValue.toString())
-      });
-      msg.innerText = "⏳ Processing...";
-      const receipt = await tx.wait();
-      msg.innerText = receipt.status === 1 ? "✅ Booking successful!" : "❌ Booking reverted!";
-    } catch (err) {
-      console.error(err);
-      msg.innerText = "❌ Transaction failed or cancelled.";
-    }
-  }
-
-  async function addReview(event, centerName, id) {
-    event.preventDefault();
-    if (!signer || !reviewContract) return alert("Connect wallet first.");
-    const message = document.getElementById(`reviewMessage${id}`).value;
-    const rating = parseInt(document.getElementById(`reviewRating${id}`).value);
-    const list = document.getElementById(`reviewList${id}`);
-    const status = document.getElementById(`reviewMsg${id}`);
-
-    try {
-      const tx = await reviewContract.addReview(centerName, message, rating);
-      status.innerText = "Submitting...";
-      await tx.wait();
-      status.innerText = "✅ Submitted!";
-      const li = document.createElement("li");
-      li.textContent = `🗣️ ${message} (⭐${rating})`;
-      list.appendChild(li);
-    } catch (err) {
-      console.error(err);
-      status.innerText = "❌ Error submitting review.";
-    }
-  }
-
-  async function loadReviews(centerName, id) {
-    if (!signer || !reviewContract) return;
-    const list = document.getElementById(`reviewList${id}`);
-    list.innerHTML = "";
-
-    try {
-      const reviews = await reviewContract.getReviews(centerName);
-      reviews.forEach(r => {
-        const li = document.createElement("li");
-        li.textContent = `🗣️ ${r.message} (⭐${r.rating})`;
-        list.appendChild(li);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  let bookingIndexMap = [];
-
-async function showMyBookings() {
-  if (!signer || !bookingContract) {
-    alert("Connect wallet first.");
-    return;
-  }
-
-  const user = await signer.getAddress();
-  const list = document.getElementById("myBookingsList");
-  const modal = new bootstrap.Modal(document.getElementById("bookingsModal"));
-  list.innerHTML = "";
-  bookingIndexMap = [];
-
-  try {
-	const bookings = await bookingContract.getBookingsByUser(user);
-	const totalBookings = bookings.length;
-    console.log("📦 Total bookings found:", totalBookings.toString());
-
-    let activeFound = false;
-
-    for (let i = 0; i < totalBookings; i++) {
-      const b = await bookingContract.userBookings(user, i);
-      console.log(`🔍 Index ${i} – Amount: ${b.amount}`);
-
-      if (b.amount.toString() === "0") continue;
-
-      activeFound = true;
-      bookingIndexMap.push(i); // Save real index
-
-      const amount = ethers.utils.formatEther(b.amount);
-      const time = new Date(b.timestamp * 1000).toLocaleString();
-
-      const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between align-items-center";
-      li.innerHTML = `
-        <div>
-          <strong>${b.sport}</strong> – ${b.centerName}<br>
-          ${amount} ETH at ${time}
-        </div>
-        <button class="btn btn-danger btn-sm" onclick="cancelBooking(${bookingIndexMap.length - 1})">Cancel</button>
-      `;
-      list.appendChild(li);
-    }
-
-    if (!activeFound) {
-      const li = document.createElement("li");
-      li.className = "list-group-item text-muted";
-      li.innerText = "No active bookings.";
-      list.appendChild(li);
-    }
-
-    modal.show();
-
-  } catch (err) {
-    console.error("❌ Error fetching bookings:", err);
-    alert("Something went wrong while loading bookings.");
-  }
-}
-
-
-
-async function cancelBooking(indexInMap) {
-  if (!signer || !bookingContract) {
-    alert("Connect wallet first.");
-    return;
-  }
-
-  try {
-    const actualIndex = bookingIndexMap[indexInMap];
-    console.log("🛑 Cancelling booking at contract index:", actualIndex);
-
-    const gasEstimate = await bookingContract.estimateGas.cancelBooking(actualIndex);
-    const tx = await bookingContract.cancelBooking(actualIndex, {
-      gasLimit: gasEstimate
-    });
-
-    console.log("⏳ Transaction sent:", tx.hash);
-    const receipt = await tx.wait();
-
-    if (receipt.status === 1) {
-      alert("✅ Booking cancelled and ETH refunded.");
-      showMyBookings(); // Refresh
-    } else {
-      alert("❌ Cancellation failed (transaction reverted).");
-    }
-  } catch (err) {
-    console.error("❌ Cancel booking error:", err);
-    alert("⚠️ Failed to cancel booking. It may already be cancelled or index is invalid.");
-  }
-}
-
-window.showMyBookings = showMyBookings;
-
-window.showMyBookings = showMyBookings;
-
-window.addEventListener("load", async () => {
-  if (window.ethereum) {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = provider.getSigner();
-
-    try {
-      const address = await signer.getAddress();
-      document.getElementById("walletAddress").innerText = "Connected: " + address;
-      bookingContract = new ethers.Contract(bookingContractAddress, bookingContractABI, signer);
-      reviewContract = new ethers.Contract(reviewContractAddress, reviewContractABI, signer);
-    } catch (err) {
-      console.log("MetaMask not connected yet or user rejected connection.");
-    }
-  }
-});
-
-
-</script>
+<script src="/js/dapp.js"></script>
 </body>
 </html>
