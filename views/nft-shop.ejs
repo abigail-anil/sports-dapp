@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NFT Shop</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body class="bg-light">
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">🎉 NFT Shop</h2>
+    <div class="text-center mb-4">
+      <button class="btn btn-primary" onclick="connectWallet()">🔗 Connect Wallet</button>
+      <p id="walletAddress" class="text-success mt-2"></p>
+    </div>
+
+    <div class="row">
+      <% nfts.forEach(nft => { %>
+        <div class="col-md-4 mb-4">
+          <div class="card h-100">
+            <img data-uri="<%= nft.uri %>" class="card-img-top" style="max-height: 250px;" alt="NFT image"/>
+            <div class="card-body">
+              <h5 class="card-title"><%= nft.name %></h5>
+              <p class="card-text"><%= nft.description %></p>
+              <% if (nft.priceETH > 0) { %>
+                <button class="btn btn-warning w-100" onclick="buyWithETH('<%= nft.uri %>', '<%= nft.description %>')">
+                  Buy for <%= nft.priceETH %> ETH
+                </button>
+              <% } else if (nft.priceSPT > 0) { %>
+                <button class="btn btn-info w-100" onclick="buyWithSPT('<%= nft.uri %>', <%= nft.priceSPT %>, '<%= nft.description %>')">
+                  Buy for <%= nft.priceSPT %> SPT
+                </button>
+              <% } else { %>
+                <button class="btn btn-success w-100" onclick="claimFreeNFT('<%= nft.uri %>', '<%= nft.description %>')">
+                  🎁 Claim for Free
+                </button>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <script src="/js/nft_shop.js"></script>
+</body>
+</html>

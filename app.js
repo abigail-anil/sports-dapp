@@ -5,7 +5,7 @@ const path = require('path');
 const indexRouter = require('./routes/index');
 const geoRouter = require('./routes/geo');
 const app = express();
-
+const nftRouter = require('./routes/nft');
 
 // Set view engine and static files
 app.set('views', path.join(__dirname, 'views'));
@@ -17,3 +17,5 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);       // Renders homepage (index.ejs)
 app.use('/geo-search', geoRouter);  // Handles search route
 module.exports = app;
+
+app.use('/', nftRouter);

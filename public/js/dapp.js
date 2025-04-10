@@ -1,8 +1,10 @@
+localStorage.setItem("walletConnected", "true");
+
 let signer, bookingContract, reviewContract, nftContract, tokenContract;
 
 const bookingContractAddress = "0x23ffa98c99dfcbf03d2dfe0781b76417ac491bee";
 const reviewContractAddress = "0x8b0979591caf02f4efbce863179f8a8bbc3a70b2";
-const nftContractAddress = "0xf81f017fd4c16c0f8d4fef2e9b5cb56d540a9d31";
+const nftContractAddress = "0x7a15dd4aa740472494ef080fe401852f5382dae2";
 const tokenContractAddress = "0xe1dbc7e05ea5c5ba271bbdc87535a60474db953c";
 
 // Load ABIs dynamically
@@ -263,6 +265,69 @@ async function cancelBooking(indexInMap) {
   }
 }
 
+async function showMyNFTs() {
+  if (!signer || !nftContract) return alert("Connect wallet first.");
+
+  const address = await signer.getAddress();
+  const list = document.getElementById("nftList");
+  list.innerHTML = "";
+
+  try {
+    const tokenIds = await nftContract.tokensOfOwner(address);
+
+    if (tokenIds.length === 0) {
+      list.innerHTML = "<p class='text-muted'>You don’t own any NFTs yet.</p>";
+      return new bootstrap.Modal(document.getElementById("nftModal")).show();
+    }
+
+    for (let i = 0; i < tokenIds.length; i++) {
+      const tokenId = tokenIds[i];
+      const uri = await nftContract.tokenURI(tokenId);
+const badge = await nftContract.badgeDetails(tokenId);
+
+let imageUrl = "";
+try {
+  const res = await fetch(uri);
+  const metadata = await res.json();
+  imageUrl = metadata.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+} catch (err) {
+  console.error("❌ Error fetching metadata", err);
+  imageUrl = "";
+}
+
+const card = document.createElement("div");
+card.className = "col-md-6";
+card.innerHTML = `
+  <div class="card h-100 shadow-sm">
+    <img src="${imageUrl}" class="card-img-top" onerror="this.style.display='none'">
+    <div class="card-body">
+      <h5 class="card-title">🏅 ${BadgeTypeToLabel(badge.badgeType)}</h5>
+      <p class="card-text">${badge.description}</p>
+      <p class="text-muted">Token ID: ${tokenId}</p>
+    </div>
+  </div>`;
+list.appendChild(card);
+
+    }
+
+    new bootstrap.Modal(document.getElementById("nftModal")).show();
+  } catch (err) {
+    console.error("NFT load error:", err);
+    alert("Failed to load your NFTs.");
+  }
+}
+
+// Badge type helper
+function BadgeTypeToLabel(badgeType) {
+  switch (parseInt(badgeType)) {
+    case 0: return "Session Completion";
+    case 1: return "Membership Pass";
+    case 2: return "Collectible";
+    default: return "Unknown";
+  }
+}
+
+window.showMyNFTs = showMyNFTs;
 window.connectWallet = connectWallet;
 window.bookSession = bookSession;
 window.addReview = addReview;
