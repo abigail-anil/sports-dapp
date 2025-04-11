@@ -1,13 +1,21 @@
-localStorage.setItem("walletConnected", "true");
+let signer = null;
 
-let signer, bookingContract, reviewContract, nftContract, tokenContract;
+// Safe global signer init
+if (typeof window !== "undefined" && window.ethereum && localStorage.getItem("walletConnected") === "true") {
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  window.getSigner = () => signer;
+}
 
-const bookingContractAddress = "0x23ffa98c99dfcbf03d2dfe0781b76417ac491bee";
+
+
+let bookingContract, reviewContract, nftContract, tokenContract;
+
+const bookingContractAddress = "0x10af4e802604f37d0cad94af167bf32af8cb18be";
 const reviewContractAddress = "0x8b0979591caf02f4efbce863179f8a8bbc3a70b2";
 const nftContractAddress = "0x7a15dd4aa740472494ef080fe401852f5382dae2";
 const tokenContractAddress = "0xe1dbc7e05ea5c5ba271bbdc87535a60474db953c";
 
-// Load ABIs dynamically
 async function loadABIs() {
   const [bookingABI, reviewABI, nftABI, tokenABI] = await Promise.all([
     fetch("/abi/booking_abi.json").then(res => res.json()),
@@ -22,46 +30,29 @@ async function loadABIs() {
   tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
 }
 
-async function connectWallet() {
-  if (!window.ethereum) return alert("Install MetaMask!");
-
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-
-  const address = await signer.getAddress();
-  document.getElementById("walletAddress").innerText = "Connected: " + address;
-
-  await loadABIs();
-
-  displayTokenBalance();
-
-}
-
 async function loadTokenAbi() {
-    const response = await fetch('/path/to/token_abi.json');
-    return await response.json();
+  const response = await fetch('/path/to/token_abi.json');
+  return await response.json();
 }
 
 async function initializeTokenContract() {
-    const tokenAbi = await loadTokenAbi();
-    tokenContract = new ethers.Contract(tokenContractAddress, tokenAbi, signer);
+  const tokenAbi = await loadTokenAbi();
+  tokenContract = new ethers.Contract(tokenContractAddress, tokenAbi, signer);
 }
 
 async function displayTokenBalance() {
-    const address = await signer.getAddress();
-    const balance = await tokenContract.balanceOf(address);
-    const formattedBalance = ethers.utils.formatUnits(balance, 18);
-    document.getElementById('tokenBalance').innerText = `Token Balance: ${formattedBalance} SPT`;
+  const address = await signer.getAddress();
+  const balance = await tokenContract.balanceOf(address);
+  const formattedBalance = ethers.utils.formatUnits(balance, 18);
+  document.getElementById('tokenBalance').innerText = `Token Balance: ${formattedBalance} SPT`;
 }
 
 async function sendTokens(recipientAddress, amount) {
-    const tx = await tokenContract.transfer(recipientAddress, ethers.utils.parseUnits(amount, 18));
-    await tx.wait();
-    alert('Transaction successful');
-    displayTokenBalance(); // Refresh balance
+  const tx = await tokenContract.transfer(recipientAddress, ethers.utils.parseUnits(amount, 18));
+  await tx.wait();
+  alert('Transaction successful');
+  displayTokenBalance();
 }
-
 
 function saveUserProfile(event) {
   event.preventDefault();
@@ -144,54 +135,61 @@ async function loadReviews(centerName, id) {
 }
 
 async function sendTokenHandler(event) {
-    event.preventDefault();
-    const address = document.getElementById("recipientAddress").value.trim();
-    const amount = document.getElementById("tokenAmount").value.trim();
-    if (!ethers.utils.isAddress(address)) return alert("Invalid address.");
-    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return alert("Invalid amount.");
-    await sendTokens(address, amount);
+  event.preventDefault();
+  const address = document.getElementById("recipientAddress").value.trim();
+  const amount = document.getElementById("tokenAmount").value.trim();
+  if (!ethers.utils.isAddress(address)) return alert("Invalid address.");
+  if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return alert("Invalid amount.");
+  await sendTokens(address, amount);
+}
+window.sendTokenHandler = sendTokenHandler;
+
+async function bookWithToken(event, form) {
+  event.preventDefault();
+  if (!signer || !tokenContract || !bookingContract) {
+    return alert("Connect wallet first.");
   }
-  window.sendTokenHandler = sendTokenHandler;
-  
-  async function bookWithToken(event, form) {
-    event.preventDefault();
-    if (!signer || !tokenContract || !bookingContract) return alert("Connect wallet first.");
-  
-    const centerName = form.dataset.centerName;
-    const sport = form.dataset.sport;
-    const id = form.dataset.centerId;
-    const tokenAmount = parseFloat(document.getElementById(`tokenFee${id}`).value);
-    const msg = document.getElementById(`tokenBookingMsg${id}`);
-  
-    if (isNaN(tokenAmount) || tokenAmount <= 0) {
-      msg.innerText = "❌ Invalid token amount.";
-      return;
-    }
-  
-    try {
-      msg.innerText = "⏳ Approving token transfer...";
-  
-      const amountInWei = ethers.utils.parseUnits(tokenAmount.toString(), 18);
-  
-      // Transfer tokens first
-      const tx1 = await tokenContract.transfer(bookingContractAddress, amountInWei);
-      await tx1.wait();
-  
-      msg.innerText = "⏳ Confirming booking...";
-  
-      // Then call smart contract method to log booking
-      const tx2 = await bookingContract.bookWithTokenSession(sport, centerName, amountInWei);
-      const receipt = await tx2.wait();
-  
-      msg.innerText = receipt.status === 1 ? "✅ Booking successful with token!" : "❌ Booking reverted!";
-    } catch (err) {
-      console.error(err);
-      msg.innerText = "❌ Token booking failed.";
-    }
+
+  const centerName = form.dataset.centerName;
+  const sport = form.dataset.sport;
+  const id = form.dataset.centerId;
+  const tokenAmount = parseFloat(document.getElementById(`tokenFee${id}`).value);
+  const msg = document.getElementById(`tokenBookingMsg${id}`);
+
+  if (isNaN(tokenAmount) || tokenAmount <= 0) {
+    msg.innerText = "❌ Invalid token amount.";
+    return;
   }
-  window.bookWithToken = bookWithToken;
-  
-  
+
+  try {
+    msg.innerText = "⏳ Checking approval...";
+
+    const amountInWei = ethers.utils.parseUnits(tokenAmount.toString(), 18);
+    const userAddress = await signer.getAddress();
+    const currentAllowance = await tokenContract.allowance(userAddress, bookingContractAddress);
+
+    if (currentAllowance.lt(amountInWei)) {
+      msg.innerText = "⏳ Approving token once...";
+      const approveTx = await tokenContract.approve(bookingContractAddress, ethers.constants.MaxUint256);
+      await approveTx.wait();
+    }
+
+    msg.innerText = "⏳ Confirming booking...";
+
+    const tx = await bookingContract.bookWithTokenSession(sport, centerName, amountInWei);
+    const receipt = await tx.wait();
+
+    msg.innerText = receipt.status === 1
+      ? "✅ Booking successful with token!"
+      : "❌ Booking reverted!";
+  } catch (err) {
+    console.error("Token booking error:", err);
+    msg.innerText = "❌ Token booking failed.";
+  }
+}
+
+
+window.bookWithToken = bookWithToken;
 
 let bookingIndexMap = [];
 
@@ -283,31 +281,30 @@ async function showMyNFTs() {
     for (let i = 0; i < tokenIds.length; i++) {
       const tokenId = tokenIds[i];
       const uri = await nftContract.tokenURI(tokenId);
-const badge = await nftContract.badgeDetails(tokenId);
+      const badge = await nftContract.badgeDetails(tokenId);
 
-let imageUrl = "";
-try {
-  const res = await fetch(uri);
-  const metadata = await res.json();
-  imageUrl = metadata.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
-} catch (err) {
-  console.error("❌ Error fetching metadata", err);
-  imageUrl = "";
-}
+      let imageUrl = "";
+      try {
+        const res = await fetch(uri);
+        const metadata = await res.json();
+        imageUrl = metadata.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+      } catch (err) {
+        console.error("❌ Error fetching metadata", err);
+        imageUrl = "";
+      }
 
-const card = document.createElement("div");
-card.className = "col-md-6";
-card.innerHTML = `
-  <div class="card h-100 shadow-sm">
-    <img src="${imageUrl}" class="card-img-top" onerror="this.style.display='none'">
-    <div class="card-body">
-      <h5 class="card-title">🏅 ${BadgeTypeToLabel(badge.badgeType)}</h5>
-      <p class="card-text">${badge.description}</p>
-      <p class="text-muted">Token ID: ${tokenId}</p>
-    </div>
-  </div>`;
-list.appendChild(card);
-
+      const card = document.createElement("div");
+      card.className = "col-md-6";
+      card.innerHTML = `
+        <div class="card h-100 shadow-sm">
+          <img src="${imageUrl}" class="card-img-top" onerror="this.style.display='none'">
+          <div class="card-body">
+            <h5 class="card-title">🏅 ${BadgeTypeToLabel(badge.badgeType)}</h5>
+            <p class="card-text">${badge.description}</p>
+            <p class="text-muted">Token ID: ${tokenId}</p>
+          </div>
+        </div>`;
+      list.appendChild(card);
     }
 
     new bootstrap.Modal(document.getElementById("nftModal")).show();
@@ -317,7 +314,6 @@ list.appendChild(card);
   }
 }
 
-// Badge type helper
 function BadgeTypeToLabel(badgeType) {
   switch (parseInt(badgeType)) {
     case 0: return "Session Completion";
@@ -327,8 +323,16 @@ function BadgeTypeToLabel(badgeType) {
   }
 }
 
+window.addEventListener("DOMContentLoaded", async () => {
+  if (localStorage.getItem("walletConnected") === "true" && window.getSigner) {
+    signer = window.getSigner();
+    await loadABIs();
+    await displayTokenBalance();
+  }
+});
+
+
 window.showMyNFTs = showMyNFTs;
-window.connectWallet = connectWallet;
 window.bookSession = bookSession;
 window.addReview = addReview;
 window.loadReviews = loadReviews;

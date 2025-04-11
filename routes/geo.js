@@ -25,13 +25,15 @@ router.get("/", (req, res) => {
       )
     );
 
-    console.log("Filtered centers for:", sportLower, city);
-    console.log("Found:", filtered.length);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Filtered centers for:", sportLower, city);
+      console.log("Found:", filtered.length);
+    }
 
     res.render("index", {
       centers: filtered,
       query,
-      sportOnly: sport.trim().split(" ")[0] || "Unknown"
+      sportOnly: sport?.trim()?.split(/\s+/)[0] || "General"
     });
 
   } catch (err) {
@@ -39,7 +41,7 @@ router.get("/", (req, res) => {
     res.render("index", {
       centers: [],
       query,
-      sportOnly: sport.trim().split(" ")[0] || "Unknown"
+      sportOnly: sport?.trim()?.split(/\s+/)[0] || "General"
     });
   }
 });
