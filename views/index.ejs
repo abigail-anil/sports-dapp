@@ -4,6 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <title>Sports DApp</title>
+  <!-- Add this in the <head> -->
+
+
+    <!-- Algolia CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css" />
+
+<!-- 🔧 Algolia Core Client (MISSING IN YOUR CODE) -->
+<script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+
+<!-- 🔍 InstantSearch.js UI Widgets -->
+<script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -49,23 +61,31 @@
       </div>
     </div>
   </div>
-  
 
-  <!-- Search Form -->
-  <div class="card p-4 mb-4">
-    <h5>🔍 Find Coaching Centers</h5>
-    <form action="/geo-search" method="GET">
-      <div class="row">
-        <div class="col-md-6 mb-2">
-          <input type="text" name="sport" class="form-control" placeholder="Sport (e.g., Tennis)" required>
-        </div>
-        <div class="col-md-6 mb-2">
-          <input type="text" name="city" class="form-control" placeholder="City (e.g., Dublin)" required>
-        </div>
+<!-- 🔍 Algolia Real-time Search (OUTSIDE the form) -->
+<div class="mb-4">
+  <h5>🔍 Find Coaching Centers (Powered by Algolia)</h5>
+  <div id="algolia-searchbox" class="mb-3"></div>
+
+  <div class="row" id="algolia-hits"></div>
+</div>
+
+<!-- 🌍 Traditional Form-Based Search (Geo Search) -->
+<div class="card p-4 mb-4">
+  <h5>🌐 Search by Sport & City</h5>
+  <form action="/geo-search" method="GET">
+    <div class="row">
+      <div class="col-md-6 mb-2">
+        <input type="text" name="sport" class="form-control" placeholder="Sport (e.g., Tennis)" required>
       </div>
-      <button class="btn btn-info">Search</button>
-    </form>
-  </div>
+      <div class="col-md-6 mb-2">
+        <input type="text" name="city" class="form-control" placeholder="City (e.g., Dublin)" required>
+      </div>
+    </div>
+    <button class="btn btn-info mt-2">Search</button>
+  </form>
+</div>
+
 
   <!-- Coaching Centers -->
   <% if (centers && centers.length > 0) { %>
@@ -159,6 +179,21 @@
   <% } %>
 </div>
 
+<!-- Center Details Modal for Algolia Hits -->
+<div class="modal fade" id="centerDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="centerTitle">Center Name</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="centerDetailsContent">
+        
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- My Bookings Modal -->
 <div class="modal fade" id="bookingsModal" tabindex="-1" aria-labelledby="bookingsModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -213,9 +248,102 @@
 	</div>
   </div>
   
+  
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/dapp.js"></script>
+
+<script>
+  function showCenterDetails(hit) {
+    const center = typeof hit === 'string' ? JSON.parse(decodeURIComponent(hit)) : hit;
+
+    document.getElementById("centerTitle").textContent = center.name;
+
+    const content = `
+      <p><strong>Address:</strong> ${center.address}</p>
+      <p><strong>Booking Fee:</strong> ${center.bookingFee} ETH</p>
+      <p><strong>Total Fee:</strong> ${center.totalFee} ETH</p>
+      <p><strong>Coach:</strong> ${center.coach?.name || 'N/A'} – ${center.coach?.expertise || 'N/A'}</p>
+      <p><strong>Token Accepted:</strong> ${center.acceptsToken ? 'Yes' : 'No'}</p>
+      <p><strong>Services:</strong> ${center.services?.join(', ') || 'None'}</p>
+      <p><strong>Rating:</strong> ⭐ ${center.rating}</p>
+
+      <hr>
+      <h6>📝 Reviews</h6>
+      <ul>
+        ${center.reviews?.map(r => `<li>${r}</li>`).join('') || '<li>No reviews</li>'}
+      </ul>
+    `;
+
+    document.getElementById("centerDetailsContent").innerHTML = content;
+
+    const modal = new bootstrap.Modal(document.getElementById("centerDetailsModal"));
+    modal.show();
+  }
+</script>
+<script>
+  const searchClient = algoliasearch(
+    'PF4IXNO2X1',                // 🔁 Replace with your Algolia App ID
+    '182c34187aaf24fa017076c604efed04'      // 🔁 Replace with your Search-Only API Key
+  );
+
+  const search = instantsearch({
+    indexName: 'sports-centers',  // 🔁 Replace with your actual Algolia index name
+    searchClient,
+  });
+
+  search.addWidgets([
+    instantsearch.widgets.searchBox({
+      container: '#algolia-searchbox',
+      placeholder: 'Search by sport, coach, or center name...'
+    }),
+
+    instantsearch.widgets.hits({
+  container: '#algolia-hits',
+  templates: {
+    item(hit) {
+      return `
+        <div class="card h-100 shadow-sm p-3" style="cursor: pointer;" onclick='showCenterDetailsFromHit(${JSON.stringify({
+          name: hit.name,
+          address: hit.address,
+          rating: hit.rating,
+          bookingFee: hit.bookingFee || '',
+          totalFee: hit.totalFee || '',
+          coach: hit.coach || {},
+          acceptsToken: hit.acceptsToken || false,
+          services: hit.services || [],
+          reviews: hit.reviews || []
+        })})'>
+          <h5 class="card-title mb-2">${hit.name}</h5>
+          <p class="mb-1"><strong>Location:</strong> ${hit.address}</p>
+          <p class="mb-0"><strong>Rating:</strong> ⭐ ${hit.rating}</p>
+        </div>
+      `;
+    }
+  },
+  cssClasses: {
+    item: 'col-md-6 col-lg-4 mb-4'  
+  }
+})
+
+  ]);
+
+  search.start();
+</script>
+<script>
+  function showCenterDetailsFromHit(hit) {
+    // hit is already a parsed JS object (not JSON)
+    showCenterDetails(hit);
+  }
+</script>
+
+<script>
+  function handleHitClick(encodedHit) {
+  const hit = JSON.parse(decodeURIComponent(encodedHit));
+  showCenterDetails(hit);
+}
+
+</script>
 </body>
 </html>
