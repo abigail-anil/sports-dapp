@@ -70,23 +70,6 @@
   <div class="row" id="algolia-hits"></div>
 </div>
 
-<!-- 🌍 Traditional Form-Based Search (Geo Search) -->
-<div class="card p-4 mb-4">
-  <h5>🌐 Search by Sport & City</h5>
-  <form action="/geo-search" method="GET">
-    <div class="row">
-      <div class="col-md-6 mb-2">
-        <input type="text" name="sport" class="form-control" placeholder="Sport (e.g., Tennis)" required>
-      </div>
-      <div class="col-md-6 mb-2">
-        <input type="text" name="city" class="form-control" placeholder="City (e.g., Dublin)" required>
-      </div>
-    </div>
-    <button class="btn btn-info mt-2">Search</button>
-  </form>
-</div>
-
-
   <!-- Coaching Centers -->
   <% if (centers && centers.length > 0) { %>
     <div class="row">
@@ -175,7 +158,6 @@
       <% }) %>
     </div>
   <% } else if (query) { %>
-    <p class="text-center text-muted">No coaching centers found. Please try a different sport or city.</p>
   <% } %>
 </div>
 
@@ -256,31 +238,75 @@
 
 <script>
   function showCenterDetails(hit) {
-    const center = typeof hit === 'string' ? JSON.parse(decodeURIComponent(hit)) : hit;
+  document.getElementById("centerTitle").textContent = hit.name;
 
-    document.getElementById("centerTitle").textContent = center.name;
+  const id = hit.objectID || hit.name.replace(/\s+/g, "_");
 
-    const content = `
-      <p><strong>Address:</strong> ${center.address}</p>
-      <p><strong>Booking Fee:</strong> ${center.bookingFee} ETH</p>
-      <p><strong>Total Fee:</strong> ${center.totalFee} ETH</p>
-      <p><strong>Coach:</strong> ${center.coach?.name || 'N/A'} – ${center.coach?.expertise || 'N/A'}</p>
-      <p><strong>Token Accepted:</strong> ${center.acceptsToken ? 'Yes' : 'No'}</p>
-      <p><strong>Services:</strong> ${center.services?.join(', ') || 'None'}</p>
-      <p><strong>Rating:</strong> ⭐ ${center.rating}</p>
+  const content = `
+    <p><strong>Address:</strong> ${hit.address}</p>
+    <p><strong>Booking Fee:</strong> ${hit.bookingFee || '0.001'} ETH</p>
+    <p><strong>Total Fee:</strong> ${hit.totalFee || '0.002'} ETH</p>
+    <p><strong>Coach:</strong> ${hit.coach?.name || 'N/A'} – ${hit.coach?.expertise || 'N/A'}</p>
+    <p><strong>Rating:</strong> ⭐ ${hit.rating || 'N/A'}</p>
 
-      <hr>
-      <h6>📝 Reviews</h6>
-      <ul>
-        ${center.reviews?.map(r => `<li>${r}</li>`).join('') || '<li>No reviews</li>'}
-      </ul>
-    `;
+    <hr>
+    <div class="row">
+      <!-- ETH Booking -->
+      <div class="col-md-6">
+        <h6>💳 Book with ETH</h6>
+        <form onsubmit="return bookSession(event, this)"
+              data-center-name="${hit.name}"
+              data-sport="${hit.sport || 'General'}"
+              data-center-id="${id}"
+              data-booking-fee="${hit.bookingFee || '0.001'}">
+          <input type="number" class="form-control mb-2" step="0.001"
+                 id="fee${id}" value="${hit.bookingFee || '0.001'}"
+                 min="${hit.bookingFee || '0.001'}" required>
+          <small class="text-muted">Min: ${hit.bookingFee || '0.001'} ETH</small>
+          <button class="btn btn-success mt-2 w-100">Pay & Book</button>
+          <p id="bookingMsg${id}" class="text-info mt-2"></p>
+        </form>
+      </div>
 
-    document.getElementById("centerDetailsContent").innerHTML = content;
+      <!-- Token Booking -->
+      <div class="col-md-6">
+        <h6>🪙 Book with SPT Token</h6>
+        <form onsubmit="return bookWithToken(event, this)"
+              data-center-name="${hit.name}"
+              data-sport="${hit.sport || 'General'}"
+              data-center-id="${id}"
+              data-booking-fee="${hit.bookingFee || '0.001'}">
+          <input type="number" class="form-control mb-2" step="0.01"
+                 id="tokenFee${id}" value="${hit.bookingFee || '0.001'}"
+                 min="${hit.bookingFee || '0.001'}" required>
+          <small class="text-muted">Min: ${hit.bookingFee || '0.001'} SPT</small>
+          <button class="btn btn-primary mt-2 w-100">Pay with Token</button>
+          <p id="tokenBookingMsg${id}" class="text-info mt-2"></p>
+        </form>
+      </div>
+    </div>
 
-    const modal = new bootstrap.Modal(document.getElementById("centerDetailsModal"));
-    modal.show();
-  }
+    <hr>
+    <h6>📝 Reviews</h6>
+    <ul id="reviewList${id}"></ul>
+    <form onsubmit="return addReview(event, '${hit.name}', '${id}')">
+      <input type="text" class="form-control mb-2" placeholder="Your review" id="reviewMessage${id}" required>
+      <input type="number" class="form-control mb-2" placeholder="Rating (1–5)" min="1" max="5" id="reviewRating${id}" required>
+      <button class="btn btn-warning">Submit Review</button>
+      <p id="reviewMsg${id}" class="text-info mt-2"></p>
+    </form>
+  `;
+
+  document.getElementById("centerDetailsContent").innerHTML = content;
+
+  // Load existing reviews (if any)
+  loadReviews(hit.name, id);
+
+  // Show the modal
+  const modal = new bootstrap.Modal(document.getElementById("centerDetailsModal"));
+  modal.show();
+}
+
 </script>
 <script>
   const searchClient = algoliasearch(
