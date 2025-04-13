@@ -44,7 +44,15 @@
     .card.h-100.shadow-sm.p-3 {
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      min-width: 260px;
+      min-height: 260px;
+      height: 100%;
+      width: 100%;  
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
+    
   </style>
 
 </head>
@@ -126,7 +134,7 @@
       <div id="algolia-searchbox" class="mb-3"></div>
     </div>
     <div class="col-12">
-      <div id="algolia-hits" class="row g-3"></div>
+      <div id="algolia-hits" class="row g-3 justify-content-center"></div>
     </div>
   </div>
 </div>
@@ -301,7 +309,8 @@
   templates: {
     item(hit) {
       return `
-        <div class="card h-100 shadow-sm p-3" style="cursor: pointer;" onclick='showCenterDetailsFromHit(${JSON.stringify({
+      <div class="col-12 col-md-4 col-lg-4 mb-4 d-flex">
+        <div class="card w-100 h-100 shadow-sm p-3 flex-column justify-content-between" style="cursor: pointer;" onclick='showCenterDetailsFromHit(${JSON.stringify({
           name: hit.name,
           address: hit.address,
           rating: hit.rating,
@@ -315,12 +324,9 @@
           <h5 class="card-title mb-2">${hit.name}</h5>
           <p class="mb-1"><strong>Location:</strong> ${hit.address}</p>
           <p class="mb-0"><strong>Rating:</strong> ⭐ ${hit.rating}</p>
-        </div>
+        </div></div>
       `;
     }
-  },
-  cssClasses: {
-    item: 'col-12 col-md-6 col-lg-4 mb-4'  
   }
 })
 
